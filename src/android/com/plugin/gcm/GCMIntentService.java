@@ -58,11 +58,22 @@ public class GCMIntentService extends GCMBaseIntentService {
 	@Override
 	protected void onMessage(Context context, Intent intent) {
 		Log.d(TAG, "onMessage - context: " + context);
+		Log.d(TAG, "onMessage - " + intent);
+
+        /*
+        Bundle bundle = intent.getExtras();
+		for (String key : bundle.keySet()) {
+            Object value = bundle.get(key);
+            Log.d(TAG, String.format("%s %s (%s)", key,
+                value.toString(), value.getClass().getName()));
+        }
+        */
 
 		// Extract the payload from the message
 		Bundle extras = intent.getExtras();
 		if (extras != null)
 		{
+
 			// if we are in the foreground, just surface the payload, else post it to the statusbar
             if (PushPlugin.isInForeground()) {
 				extras.putBoolean("foreground", true);
@@ -72,7 +83,7 @@ public class GCMIntentService extends GCMBaseIntentService {
 				extras.putBoolean("foreground", false);
 
                 // Send a notification if there is a message
-                if (extras.getString("message") != null && extras.getString("message").length() != 0) {
+                if (extras.getString("data") != null && extras.getString("data").length() != 0) {
                     createNotification(context, extras);
                 }
             }
@@ -81,6 +92,16 @@ public class GCMIntentService extends GCMBaseIntentService {
 
 	public void createNotification(Context context, Bundle extras)
 	{
+        String title = "New Message";
+        String message = null;
+        try {
+    	    JSONObject dataObject = new JSONObject(extras.getString("data"));
+	        title = dataObject.getString("title");
+	        message = dataObject.getString("message");
+        } catch (JSONException e) {
+            //
+        }
+
 		NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 		String appName = getAppName(this);
 
@@ -97,18 +118,18 @@ public class GCMIntentService extends GCMBaseIntentService {
 				defaults = Integer.parseInt(extras.getString("defaults"));
 			} catch (NumberFormatException e) {}
 		}
+
 		
 		NotificationCompat.Builder mBuilder =
 			new NotificationCompat.Builder(context)
 				.setDefaults(defaults)
 				.setSmallIcon(context.getApplicationInfo().icon)
 				.setWhen(System.currentTimeMillis())
-				.setContentTitle(extras.getString("title"))
-				.setTicker(extras.getString("title"))
+				.setContentTitle(title)
+				.setTicker(title)
 				.setContentIntent(contentIntent)
 				.setAutoCancel(true);
 
-		String message = extras.getString("message");
 		if (message != null) {
 			mBuilder.setContentText(message);
 		} else {
